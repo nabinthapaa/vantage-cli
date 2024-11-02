@@ -10,7 +10,7 @@ import (
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/nabinthapaa/vantage/constants"
+	"github.com/nabinthapaa/vantage-cli/constants"
 )
 
 type File struct {

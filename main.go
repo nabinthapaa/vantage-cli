@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/nabinthapaa/vantage/constants"
-	"github.com/nabinthapaa/vantage/table"
+	"github.com/nabinthapaa/vantage-cli/constants"
+	"github.com/nabinthapaa/vantage-cli/table"
 )
 
 func main() {

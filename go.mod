@@ -1,4 +1,4 @@
-module github.com/nabinthapaa/vantage
+module github.com/nabinthapaa/vantage-cli
 
 go 1.23.0
 
