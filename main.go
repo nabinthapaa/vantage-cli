@@ -8,6 +8,8 @@ import (
 	"strconv"
 )
 
+var CONSERVATION_MODE_FILE = "/sys/bus/platform/devices/VPC2004:00/conservation_mode"
+
 func main() {
 	if len(os.Args) < 2 {
 		fmt.Println("Please provide 'on' or 'off' as a flag.")
@@ -15,7 +17,7 @@ func main() {
 	}
 	flag := os.Args[1]
 
-	file, err := os.OpenFile("/sys/bus/platform/devices/VPC2004:00/conservation_mode", os.O_RDWR, 0644)
+	file, err := os.OpenFile(CONSERVATION_MODE_FILE, os.O_RDWR, 0644)
 	if err != nil {
 		log.Fatalf("Failed to open conservation_mode file: %v", err)
 	}
