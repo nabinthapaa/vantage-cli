@@ -1,16 +1,16 @@
 package table
 
 import (
-	"bufio"
 	"fmt"
 	"log"
-	"os"
-	"strconv"
 
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/nabinthapaa/vantage-cli/constants"
+	c "github.com/nabinthapaa/vantage-cli/constants"
+	"github.com/nabinthapaa/vantage-cli/modules/conservation_mode"
+	"github.com/nabinthapaa/vantage-cli/modules/fn_lock"
+	"github.com/nabinthapaa/vantage-cli/modules/usb_charging"
 )
 
 type File struct {
@@ -29,77 +29,33 @@ var baseStyle = lipgloss.NewStyle().
 	BorderStyle(lipgloss.NormalBorder()).
 	BorderForeground(lipgloss.Color("240"))
 
-func GetValues(s string, on int, off int) string {
-	file, err := os.OpenFile(s, os.O_RDONLY, 0644)
+func (m model) updateTableValues() {
+	var err error
+	m.c_mode.value, err = conservation_mode.GetCurrentValue()
+	m.fn_lock.value, err = fn_lock.GetCurrentValue()
+	m.usb_charging.value, err = usb_charging.GetCurrentValue()
 	if err != nil {
-		log.Fatalf("Failed to open conservation_mode file: %v", err)
+		log.Fatalf("Error: %v", err)
 	}
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
-	if !scanner.Scan() {
-		log.Fatal("Failed to read from conservation_mode file")
-	}
-	fileContent := scanner.Text()
-
-	mode, err := strconv.Atoi(fileContent)
-	if err != nil {
-		log.Fatalf("Error parsing mode: %v", err)
-	}
-
-	if mode == on {
-		return "On"
-	} else if mode == off {
-		return "Off"
-	} else {
-		return "Invalid value"
-	}
-}
-
-func handleOnOff(s string, val string) error {
-	var mode string
-	file, err := os.OpenFile(s, os.O_WRONLY, 0644)
-	if err != nil {
-		return fmt.Errorf("Failed to open conservation_mode file: %v", err)
-	}
-	defer file.Close()
-
-	if val == "On" {
-		mode = "0"
-	} else if val == "Off" {
-		mode = "1"
-	}
-
-	if _, err := file.WriteString(mode); err != nil {
-		return fmt.Errorf("Failed to write to conservation_mode file: %v", err)
-	}
-
-	return nil
-}
-
-func (m model) updateValue() {
-	c_mode := GetValues(constants.CONSERVATION_MODE_FILE, 1, 0)
-	fn_lock := GetValues(constants.FN_LOCK, 1, 0)
-	usb_charging := GetValues(constants.USB_CHARGING, 1, 0)
-
-	m.c_mode.value = c_mode
-	m.fn_lock.value = fn_lock
-	m.usb_charging.value = usb_charging
 }
 
 func initializeModel() *model {
-	c_mode := GetValues(constants.CONSERVATION_MODE_FILE, 1, 0)
-	fn_lock := GetValues(constants.FN_LOCK, 1, 0)
-	usb_charging := GetValues(constants.USB_CHARGING, 1, 0)
+	var err error
+	c_mode, err := conservation_mode.GetCurrentValue()
+	fn_lock, err := fn_lock.GetCurrentValue()
+	usb_charging, err := usb_charging.GetCurrentValue()
+	if err != nil {
+		log.Fatalf("Error: %v", err)
+	}
 
 	c_mode_struct := &File{
-		constants.CONSERVATION_MODE_FILE, c_mode,
+		c.CONSERVATION_MODE, c_mode,
 	}
 	fn_struct := &File{
-		constants.FN_LOCK, fn_lock,
+		c.FN_LOCK, fn_lock,
 	}
 	usb_charging_struct := &File{
-		constants.CONSERVATION_MODE_FILE, usb_charging,
+		c.USB_CHARGING, usb_charging,
 	}
 
 	columns := []table.Column{
@@ -108,8 +64,8 @@ func initializeModel() *model {
 		{Title: "", Width: 0},
 	}
 	rows := []table.Row{
-		{"Fn Lock", fn_struct.value, fn_struct.filename},
 		{"Conservation Mode", c_mode_struct.value, c_mode_struct.filename},
+		{"Fn Lock", fn_struct.value, fn_struct.filename},
 		{"Usb Charging", usb_charging_struct.value, usb_charging_struct.filename},
 	}
 
@@ -142,8 +98,8 @@ func initializeModel() *model {
 
 func (m model) updateTable() []table.Row {
 	rows := []table.Row{
-		{"Fn Lock", m.fn_lock.value, m.fn_lock.filename},
 		{"Conservation Mode", m.c_mode.value, m.c_mode.filename},
+		{"Fn Lock", m.fn_lock.value, m.fn_lock.filename},
 		{"Usb Charging", m.usb_charging.value, m.usb_charging.filename},
 	}
 
@@ -171,8 +127,22 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "q", "ctrl+c", "esc":
 			return m, tea.Quit
 		case "enter":
-			handleOnOff(m.t.SelectedRow()[2], m.t.SelectedRow()[1])
-			m.updateValue()
+			file, value := m.t.SelectedRow()[2], m.t.SelectedRow()[1]
+			switch file {
+			case c.CONSERVATION_MODE:
+				if err := conservation_mode.UpdateCurrentValue(value); err != nil {
+					log.Fatalf("Error: ", err)
+				}
+			case c.FN_LOCK:
+				if err := fn_lock.UpdateCurrentValue(value); err != nil {
+					log.Fatalf("Error: ", err)
+				}
+			case c.USB_CHARGING:
+				if err := usb_charging.UpdateCurrentValue(value); err != nil {
+					log.Fatalf("Error: ", err)
+				}
+			}
+			m.updateTableValues()
 			m.t.SetRows(m.updateTable())
 			return m, nil
 		}

@@ -33,7 +33,7 @@ func main() {
 			os.Exit(1)
 		}
 	} else {
-		file, err := os.OpenFile(constants.CONSERVATION_MODE_FILE, os.O_RDWR, 0644)
+		file, err := os.OpenFile(constants.CONSERVATION_MODE, os.O_RDWR, 0644)
 		if err != nil {
 			log.Fatalf("Failed to open conservation_mode file: %v", err)
 		}
